@@ -2,7 +2,7 @@
 
 # frontend
 
-Teller's frontend is exposed as a HTTP API. 
+Teller's frontend is exposed as an HTTP API. 
 
 ## /api/bind
 
@@ -34,6 +34,8 @@ This creates a new [request](#request) in the backend and returns JSON output on
 
 ## /api/status
 
+This gets the [metadata](#request) of a request and returns it to the user.
+
 **request**
 
 ```
@@ -63,6 +65,7 @@ This creates a new [request](#request) in the backend and returns JSON output on
 	* `waiting_confirm` - skycoin sent, waiting to confirm transaction 
 	* `done` - skycoin transaction confirmed 
 	* `expired` - drop expired
+* `updated_at` is the unix time (seconds) when the request was last updated
 
 # backend
 
