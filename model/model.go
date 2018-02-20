@@ -57,11 +57,11 @@ func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
 
 		// inject each request into the proper service
 		for _, request := range requests {
-			go func() {
+			go func(request *types.Request) {
 				if err := m.Handle(request); err != nil {
 					m.errs <- err
 				}
-			}()
+			}(request)
 		}
 	}
 

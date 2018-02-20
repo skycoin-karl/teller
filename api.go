@@ -68,15 +68,17 @@ func apiBind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: handle error better
-	err = MODEL.Handle(request)
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		// TODO: handle error better
+		err = MODEL.Handle(request)
+		if err != nil {
+			panic(err)
+		}
+	}()
 }
 
 type apiStatusRequest struct {
-	Address      string `json:"skycoin_address"`
+	Address      string `json:"address"`
 	DropAddress  string `json:"drop_address"`
 	DropCurrency string `json:"drop_currency"`
 }
