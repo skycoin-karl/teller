@@ -35,3 +35,9 @@ The **sender** handles a request once a deposit has been detected. It calculates
 <p align="center">
 	<img src="img/monitor.svg" />
 </p>
+
+The **monitor** handles a request once skycoin has been sent to the user. It watches `request.TxId` until the skycoin transaction has been confirmed on the network. After a certain number of tries, it will timeout and report the error.
+
+### possible errors
+
+* Getting status of transaction from multicoin wallet service.
