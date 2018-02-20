@@ -1,5 +1,7 @@
 # teller
 
+Teller is a daemon with the sole purpose of exposing an HTTP API that allows users to exchange a variety of currencies (BTC, ETH, etc.) for Skycoin (and others in the future).
+
 # frontend
 
 Teller's frontend is exposed as an HTTP API. 
@@ -142,7 +144,7 @@ The **scanner** continuously checks the balance of `request.Drop` and returns wh
 	<img src="img/sender.svg" />
 </p>
 
-The **sender** handles a request once a deposit has been detected. It calculates the equivalent skycoin amount to send based on the current value of `request.Currency`. The **sender** then gets skycoin from an exchange (using exchange api service), or from the OTC wallet. Then, a skycoin transaction is created (using multicoin wallet api) and injected (using multicoin wallet api). The `request.TxId` is filled with the skycoin transaction ID for **monitor** to watch.
+The **sender** handles the request once a deposit has been detected. It calculates the equivalent skycoin amount to send based on the current value of `request.Currency`. The **sender** then gets skycoin from an exchange (using exchange api service), or from the OTC wallet. Then, a skycoin transaction is created (using multicoin wallet api) and injected (using multicoin wallet api). The `request.TxId` is filled with the skycoin transaction ID for **monitor** to watch.
 
 ### possible errors
 
@@ -156,7 +158,7 @@ The **sender** handles a request once a deposit has been detected. It calculates
 	<img src="img/monitor.svg" />
 </p>
 
-The **monitor** handles a request once skycoin has been sent to the user. It watches `request.TxId` until the skycoin transaction has been confirmed on the network. After a certain number of tries, it will timeout and report the error.
+The **monitor** handles the request once skycoin has been sent to the user. It watches `request.TxId` until the skycoin transaction has been confirmed on the network. After a certain number of tries, it will timeout and report the error.
 
 ### possible errors
 
