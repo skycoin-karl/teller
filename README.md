@@ -31,7 +31,7 @@ At any point, if the `request` has expired, `request.Status` will be set to `exp
 
 ```go
 type Request struct {
-	// Address contains the users Skycoin address.
+    // Address contains the users Skycoin address.
     Address  Address
     // Currency denotes the currency the user wants to exchange. BTC, ETH, etc.
     Currency Currency
@@ -42,12 +42,12 @@ type Request struct {
 }
 
 type Metadata struct {
-	// Status can be:
-	//     * "waiting_deposit"
-	//     * "waiting_send"
-	//     * "waiting_confirm"
-	//     * "done"
-	//     * "expired"
+    // Status can be:
+    //     * "waiting_deposit"
+    //     * "waiting_send"
+    //     * "waiting_confirm"
+    //     * "done"
+    //     * "expired"
     Status    Status `json:"status"`
     // CreatedAt denotes the unix time when Request was created.
     CreatedAt int64  `json:"created_at"`
