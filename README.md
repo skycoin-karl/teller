@@ -30,14 +30,14 @@ At any point, if the `request` has expired, `request.Status` will be set to `exp
 ### request
 
 ```go
-Request struct {
+type Request struct {
     Address  Address
     Currency Currency
     Drop     Drop
     Metadata *Metadata
 }
 
-Metadata struct {
+type Metadata struct {
     Status    Status `json:"status"`
     CreatedAt int64  `json:"created_at"`
     UpdatedAt int64  `json:"updated_at"`
