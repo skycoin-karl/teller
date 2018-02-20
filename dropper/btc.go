@@ -10,7 +10,7 @@ import (
 	"github.com/skycoin-karl/teller/types"
 )
 
-const ACCOUNT = "teller"
+const ACCOUNT = "teller-json"
 
 type BTCConnection struct {
 	client *rpcclient.Client

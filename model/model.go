@@ -106,6 +106,28 @@ func (m *Model) Handle(r *types.Request) error {
 	return m.Handle(r)
 }
 
+var ErrDropMissing = errors.New("drop doesn't exist")
+
+func (m *Model) GetMetadata(a types.Address, d types.Drop, c types.Currency) (*types.Metadata, error) {
+	file, err := os.OpenFile(m.path+string(a)+".json", os.O_RDONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	var data map[types.Currency]map[types.Drop]*types.Metadata
+
+	err = json.NewDecoder(file).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	if data[c] == nil || data[c][d] == nil {
+		return nil, ErrDropMissing
+	}
+
+	return data[c][d], nil
+}
+
 func (m *Model) load(n string) ([]*types.Request, error) {
 	// check that filename is longer than just ".json"
 	if len(n) <= 5 {

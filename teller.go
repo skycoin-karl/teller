@@ -1,7 +1,7 @@
 package main
 
 import (
-	"time"
+	"net/http"
 
 	"github.com/skycoin-karl/teller/dropper"
 	"github.com/skycoin-karl/teller/model"
@@ -11,24 +11,24 @@ import (
 	"github.com/skycoin-karl/teller/skycoin"
 )
 
-func main() {
-	var (
-		DROPPER *dropper.Dropper
-		SKYCOIN *skycoin.Connection
-		SCANNER *scanner.Scanner
-		SENDER  *sender.Sender
-		MONITOR *monitor.Monitor
-		MODEL   *model.Model
+var (
+	DROPPER *dropper.Dropper
+	SKYCOIN *skycoin.Connection
+	SCANNER *scanner.Scanner
+	SENDER  *sender.Sender
+	MONITOR *monitor.Monitor
+	MODEL   *model.Model
+)
 
-		err error
-	)
+func main() {
+	var err error
 
 	DROPPER, err = dropper.NewDropper()
 	if err != nil {
 		panic(err)
 	}
 
-	SKYCOIN, err = skycoin.NewConnection("addr", "seed")
+	SKYCOIN, err = skycoin.NewConnection("localhost:6430", "seed")
 	if err != nil {
 		panic(err)
 	}
@@ -53,7 +53,10 @@ func main() {
 		panic(err)
 	}
 
-	_ = MODEL
+	http.HandleFunc("/api/bind", apiBind)
+	http.HandleFunc("/api/status", apiStatus)
 
-	<-time.After(time.Second * 20)
+	if err = http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 }
