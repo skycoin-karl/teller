@@ -12,16 +12,20 @@ A `request` can be created from two sources:
 * frontend http request
 * on startup (reading unfinished requests from disk)
 
-Right now, each `request` creates its own goroutine (will change for better scaling in later phases) where the following steps take place:
+Right now, each `request` creates its own goroutine (will change for better scaling in later phase) where the following steps take place:
 
-1. `request.Status` is `waiting_deposit` -- waiting for the user to deposit
+1. `request.Status == waiting_deposit` - waiting for the user to deposit
 	* **scanner** watches `request.Drop` until deposit is detected
-2. `request.Status` is `waiting_send` -- waiting for **sender** to send skycoin to `request.Address`
+2. `request.Status == waiting_send` - waiting for **sender** to send skycoin to `request.Address`
 	* **sender** gets skycoin and sends it to `request.Address`
 	* **sender** updates `request.TxId` with skycoin transaction ID
-3. `request.Status` is `waiting_confirm` -- waiting for **monitor** to confirm skycoin transaction
+3. `request.Status == waiting_confirm` - waiting for **monitor** to confirm skycoin transaction
 	* **monitor** watches `request.TxId` until confirmed
-4. `request.Status` is `done` -- goroutine exits
+4. `request.Status == done` - goroutine exits
+
+The `request` is saved to disk between each transition. So, after step 1, after step 2, after step 3, and after step 4.
+
+At any point, if the `request` has expired, `request.Status` will be set to `expired` and the `request` will be discarded.
 
 ## scanner
 
