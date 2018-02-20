@@ -8,7 +8,7 @@ Teller's frontend is exposed as an HTTP API.
 
 This creates a new [request](#request) in the backend and returns JSON output on the frontend. The user can then send their currency to the returned address and the process will begin.
 
-**request**
+**http request**
 
 ```json
 {
@@ -20,7 +20,7 @@ This creates a new [request](#request) in the backend and returns JSON output on
 * `address` is the user's skycoin address where skycoin will be delivered
 * `drop_currency` determines the type of `drop_address` to generate (what currency the user wants to deposit)
 
-**response**
+**http response**
 
 ```json
 {
@@ -36,7 +36,7 @@ This creates a new [request](#request) in the backend and returns JSON output on
 
 This gets the [metadata](#request) of a request and returns it to the user.
 
-**request**
+**http request**
 
 ```
 {
@@ -50,7 +50,7 @@ This gets the [metadata](#request) of a request and returns it to the user.
 * `drop_address` denotes the address they want the status of
 * `drop_currency` denotes the currency of the address they want the status of
 
-**response**
+**http response**
 
 ```
 {
