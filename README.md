@@ -1,5 +1,68 @@
 # teller
 
+# frontend
+
+Teller's frontend is exposed as a HTTP API. 
+
+## /api/bind
+
+This creates a new [request](#request) in the backend and returns JSON output on the frontend. The user can then send their currency to the returned address and the process will begin.
+
+**request**
+
+```json
+{
+	"address": "...skycoin address...",
+	"drop_currency": "BTC"
+}
+```
+
+* `address` is the user's skycoin address where skycoin will be delivered
+* `drop_currency` determines the type of `drop_address` to generate (what currency the user wants to deposit)
+
+**response**
+
+```json
+{
+	"drop_address": "...",
+	"drop_currency": "BTC",
+}
+```
+
+* `drop_address` is the address of type `drop_currency` for the user to send their currency to
+* `drop_currency` is the same as sent in the request
+
+## /api/status
+
+**request**
+
+```
+{
+	"address": "...skycoin address...",
+	"drop_address": "...",
+	"drop_currency": "..."
+}
+```
+
+* `address` is the user's skycoin address where skycoin will be sent
+* `drop_address` denotes the address they want the status of
+* `drop_currency` denotes the currency of the address they want the status of
+
+**response**
+
+```
+{
+	"status": "...",
+	"updated_at": 1519131184,
+}
+```
+
+* `status` is one of the following:
+	* `waiting_deposit` - skycoin address is bound, no deposit seen yet 
+	* `waiting_send` - deposit detected, waiting to send sky to user 
+	* `waiting_confirm` - skycoin sent, waiting to confirm transaction 
+	* `done` - skycoin transaction confirmed 
+	* `expired` - drop expired
 
 # backend
 
@@ -32,11 +95,11 @@ At any point, if the `request` has expired, `request.Status` will be set to `exp
 ```go
 type Request struct {
     // Address contains the users Skycoin address.
-    Address  Address
+    Address Address
     // Currency denotes the currency the user wants to exchange. BTC, ETH, etc.
     Currency Currency
     // Drop denotes the address of type Currency for the user to deposit to.
-    Drop     Drop
+    Drop Drop
     // Metadata contains important data for handling the request.
     Metadata *Metadata
 }
@@ -48,13 +111,13 @@ type Metadata struct {
     //     * "waiting_confirm"
     //     * "done"
     //     * "expired"
-    Status    Status `json:"status"`
+    Status Status `json:"status"`
     // CreatedAt denotes the unix time when Request was created.
-    CreatedAt int64  `json:"created_at"`
+    CreatedAt int64 `json:"created_at"`
     // UpdatedAt denotes the unix time when Request was last updated.
-    UpdatedAt int64  `json:"updated_at"`
+    UpdatedAt int64 `json:"updated_at"`
     // TxId is empty until filled by Sender, then Monitor tracks transaction.
-    TxId      string `json:"tx_id"`
+    TxId string `json:"tx_id"`
 }
 ```
 
