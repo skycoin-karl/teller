@@ -77,7 +77,7 @@ This gets the [metadata](#request) of a request and returns it to the user.
 
 **NOTE**
 
-Each component (**scanner**, **sender**, **monitor**) is just a Go package. They aren't separate processes or daemons, *everything is included inside the teller daemon*. The diagrams and information is just to aid in communication and development.
+Each component (**scanner**, **sender**, **monitor**) is just a Go package. They aren't separate processes or daemons, *everything is included inside the teller daemon (single binary)*. The diagrams and information is just to aid in communication and development.
 
 ---
 
