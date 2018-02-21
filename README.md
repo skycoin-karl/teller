@@ -27,7 +27,7 @@ This creates a new [request](#request) in the backend and returns JSON output on
 ```json
 {
 	"drop_address": "...",
-	"drop_currency": "BTC",
+	"drop_currency": "BTC"
 }
 ```
 
@@ -57,7 +57,7 @@ This gets the [metadata](#request) of a request and returns it to the user.
 ```
 {
 	"status": "...",
-	"updated_at": 1519131184,
+	"updated_at": 1519131184
 }
 ```
 
@@ -77,7 +77,7 @@ This gets the [metadata](#request) of a request and returns it to the user.
 
 **NOTE**
 
-Each component (scanner, sender, monitor) is just a Go package. They aren't separate processes or daemons, *everything is included inside the teller daemon*. The diagrams and information is just to aid in communication and development.
+Each component (**scanner**, **sender**, **monitor**) is just a Go package. They aren't separate processes or daemons, *everything is included inside the teller daemon*. The diagrams and information is just to aid in communication and development.
 
 ---
 
@@ -86,7 +86,7 @@ A `request` can be created from two sources:
 * [frontend](#frontend) http request
 * on startup (reading unfinished requests from disk)
 
-Right now, each `request` creates its own goroutine (will change for better scaling in later phase) where the following steps take place:
+Right now, each `request` creates its own goroutine (might change for better scaling in later phase) where the following steps take place:
 
 1. `request.Status = waiting_deposit` - waiting for the user to deposit
 	* **scanner** watches `request.Drop` until deposit is detected
