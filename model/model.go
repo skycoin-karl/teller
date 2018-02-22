@@ -92,17 +92,8 @@ func (m *Model) process() {
 	m.Lock()
 	defer m.Unlock()
 
-	var (
-		e *list.Element = m.results.Front()
-		r chan *types.Result
-	)
-
-	for i := 0; i < m.results.Len(); i++ {
-		if e == nil {
-			return
-		}
-
-		r = e.Value.(chan *types.Result)
+	for e := m.results.Front(); e != nil; e = e.Next() {
+		r := e.Value.(chan *types.Result)
 
 		select {
 		case result := <-r:
@@ -120,12 +111,9 @@ func (m *Model) process() {
 				}
 			}
 			m.results.Remove(e)
-			break
 		default:
-			break
+			continue
 		}
-
-		e = e.Next()
 	}
 }
 

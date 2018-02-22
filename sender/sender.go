@@ -45,39 +45,25 @@ func (s *Sender) process() {
 	s.Lock()
 	defer s.Unlock()
 
-	e := s.work.Front()
-
-	var (
-		w       *types.Work
-		balance float64
-		err     error
-	)
-
-	for i := 0; i < s.work.Len(); i++ {
-		// nothing left in queue
-		if e == nil {
-			return
-		}
-
-		w = e.Value.(*types.Work)
+	for e := s.work.Front(); e != nil; e = e.Next() {
+		w := e.Value.(*types.Work)
 
 		// check if expired
 		if w.Request.Metadata.Expired() {
 			w.Request.Metadata.Status = types.EXPIRED
 			w.Return(nil)
 			s.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
 		// get balance of drop
-		if balance, err = s.dropper.GetBalance(
+		balance, err := s.dropper.GetBalance(
 			w.Request.Currency,
 			w.Request.Drop,
-		); err != nil {
+		)
+		if err != nil {
 			w.Return(err)
 			s.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
@@ -85,7 +71,6 @@ func (s *Sender) process() {
 		if balance == 0.0 {
 			w.Return(ErrZeroBalance)
 			s.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
@@ -105,7 +90,6 @@ func (s *Sender) process() {
 		if err != nil {
 			w.Return(err)
 			s.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
@@ -114,7 +98,6 @@ func (s *Sender) process() {
 		if err != nil {
 			w.Return(err)
 			s.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
@@ -125,9 +108,6 @@ func (s *Sender) process() {
 
 		// remove from queue
 		s.work.Remove(e)
-
-		// get next item in queue
-		e = e.Next()
 	}
 }
 

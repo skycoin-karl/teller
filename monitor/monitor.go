@@ -38,28 +38,19 @@ func (m *Monitor) process() {
 	m.Lock()
 	defer m.Unlock()
 
-	e := m.work.Front()
-	var w *types.Work
-
-	for i := 0; i < m.work.Len(); i++ {
-		if e == nil {
-			return
-		}
-
-		w = e.Value.(*types.Work)
+	for e := m.work.Front(); e != nil; e = e.Next() {
+		w := e.Value.(*types.Work)
 
 		// get sky transaction
 		tx, err := m.skycoin.Client.GetTransactionByID(w.Request.Metadata.TxId)
 		if err != nil {
 			w.Return(err)
 			m.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
 		// if not confirmed, move to next work
 		if !tx.Transaction.Status.Confirmed {
-			e = e.Next()
 			continue
 		}
 
@@ -69,9 +60,6 @@ func (m *Monitor) process() {
 
 		// remove from queue
 		m.work.Remove(e)
-
-		// get next item in queue
-		e = e.Next()
 	}
 }
 

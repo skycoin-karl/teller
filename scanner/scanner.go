@@ -38,40 +38,25 @@ func (s *Scanner) process() {
 	s.Lock()
 	defer s.Unlock()
 
-	// get first item
-	e := s.work.Front()
-
-	var (
-		w       *types.Work
-		balance float64
-		err     error
-	)
-
-	for i := 0; i < s.work.Len(); i++ {
-		// nothing left in queue
-		if e == nil {
-			return
-		}
-
-		w = e.Value.(*types.Work)
+	for e := s.work.Front(); e != nil; e = e.Next() {
+		w := e.Value.(*types.Work)
 
 		// check if expired
 		if w.Request.Metadata.Expired() {
 			w.Request.Metadata.Status = types.EXPIRED
 			w.Return(nil)
 			s.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
 		// get balance of drop
-		if balance, err = s.dropper.GetBalance(
+		balance, err := s.dropper.GetBalance(
 			w.Request.Currency,
 			w.Request.Drop,
-		); err != nil {
+		)
+		if err != nil {
 			w.Return(err)
 			s.work.Remove(e)
-			e = e.Next()
 			continue
 		}
 
@@ -84,7 +69,6 @@ func (s *Scanner) process() {
 		w.Request.Metadata.Status = types.SEND
 		w.Return(nil)
 		s.work.Remove(e)
-		e = e.Next()
 	}
 }
 
