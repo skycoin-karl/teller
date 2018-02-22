@@ -144,7 +144,7 @@ func TestModelAdd(t *testing.T) {
 				Path string
 			}{
 				Tick: 1,
-				Path: "empty/",
+				Path: "testing/",
 			},
 		},
 		SCANNER,
@@ -156,18 +156,20 @@ func TestModelAdd(t *testing.T) {
 	}
 
 	m.Add(&types.Request{
-		Address:  types.Address("doesn't matter"),
-		Currency: types.Currency("doesn't matter"),
-		Drop:     types.Drop("doesn't matter"),
+		Address:  types.Address("2dvVgeKNU7UHdvvBUVZXbBaxoTkpemo1cmg"),
+		Currency: types.Currency("testing"),
+		Drop:     types.Drop("testing"),
 		Metadata: &types.Metadata{
 			Status:    types.DEPOSIT,
 			CreatedAt: 0,
 			UpdatedAt: 0,
-			TxId:      "doesn't matter",
+			TxId:      "",
 		},
 	})
 
 	if m.results.Len() != 1 {
 		t.Fatal("model not queueing work properly")
 	}
+
+	// check on disk
 }
