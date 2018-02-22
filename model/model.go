@@ -22,26 +22,24 @@ var (
 type Model struct {
 	sync.Mutex
 
-	path     string
-	errs     chan error
-	stop     chan struct{}
-	stopping bool
-	results  *list.List
-	Scanner  types.Service
-	Sender   types.Service
-	Monitor  types.Service
+	path    string
+	errs    chan error
+	stop    chan struct{}
+	results *list.List
+	Scanner types.Service
+	Sender  types.Service
+	Monitor types.Service
 }
 
 func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
 	m := &Model{
-		results:  list.New().Init(),
-		path:     path,
-		errs:     make(chan error),
-		stop:     make(chan struct{}),
-		stopping: false,
-		Scanner:  scnr,
-		Sender:   sndr,
-		Monitor:  mntr,
+		results: list.New().Init(),
+		path:    path,
+		errs:    make(chan error),
+		stop:    make(chan struct{}),
+		Scanner: scnr,
+		Sender:  sndr,
+		Monitor: mntr,
 	}
 
 	go m.logger()
@@ -82,14 +80,14 @@ func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
 }
 
 func (m *Model) Stop() {
-	m.Lock()
-	defer m.Unlock()
-	m.stopping = true
-
+	println("stopping scanner")
 	m.Scanner.Stop()
+	println("stopping sender")
 	m.Sender.Stop()
+	println("stopping monitor")
 	m.Monitor.Stop()
 
+	println("stopping model")
 	m.stop <- struct{}{}
 }
 
@@ -165,14 +163,6 @@ func (m *Model) Add(r *types.Request) error {
 }
 
 func (m *Model) Handle(r *types.Request) chan *types.Result {
-	m.Lock()
-	defer m.Unlock()
-
-	// don't take any more requests if stopping
-	if m.stopping {
-		return nil
-	}
-
 	switch r.Metadata.Status {
 	case types.DEPOSIT:
 		return m.Scanner.Handle(r)

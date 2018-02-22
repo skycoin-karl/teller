@@ -2,6 +2,8 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"os/signal"
 
 	"github.com/skycoin-karl/teller/dropper"
 	"github.com/skycoin-karl/teller/model"
@@ -21,6 +23,10 @@ var (
 )
 
 func main() {
+	// for graceful shutdown / cleanup
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
 	var err error
 
 	DROPPER, err = dropper.NewDropper()
@@ -57,9 +63,16 @@ func main() {
 	}
 	MODEL.Start()
 
+	go func() {
+		<-stop
+		MODEL.Stop()
+		os.Exit(0)
+	}()
+
 	http.HandleFunc("/api/bind", apiBind)
 	http.HandleFunc("/api/status", apiStatus)
 
+	println("listening on :8080")
 	if err = http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
