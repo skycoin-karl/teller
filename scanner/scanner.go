@@ -83,6 +83,6 @@ func (s *Scanner) Handle(request *types.Request) chan *types.Result {
 	defer s.Unlock()
 
 	result := make(chan *types.Result, 1)
-	s.work.PushFront(&types.Work{request, result})
+	s.work.PushBack(&types.Work{request, result})
 	return result
 }

@@ -156,7 +156,8 @@ func (m *Model) Add(r *types.Request) error {
 
 	// route to next component
 	if res := m.Handle(r); res != nil {
-		m.results.PushFront(res)
+		// add to end of queue
+		m.results.PushBack(res)
 	}
 
 	return nil

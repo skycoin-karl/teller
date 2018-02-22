@@ -15,6 +15,7 @@ type Monitor struct {
 	skycoin *skycoin.Connection
 	work    *list.List
 	stop    chan struct{}
+	stopped bool
 }
 
 func NewMonitor(sky *skycoin.Connection) (*Monitor, error) {
@@ -31,10 +32,11 @@ func (m *Monitor) Start() {
 	go func() {
 		for {
 			// TODO: tick
-			<-time.After(time.Second * 5)
+			<-time.After(time.Second * 1)
 
 			select {
 			case <-m.stop:
+				m.stopped = true
 				return
 			default:
 				m.process()
@@ -77,6 +79,6 @@ func (m *Monitor) Handle(request *types.Request) chan *types.Result {
 	defer m.Unlock()
 
 	result := make(chan *types.Result, 1)
-	m.work.PushFront(&types.Work{request, result})
+	m.work.PushBack(&types.Work{request, result})
 	return result
 }
