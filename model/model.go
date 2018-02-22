@@ -1,11 +1,14 @@
 package model
 
 import (
+	"container/list"
 	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
 	"os"
+	"sync"
+	"time"
 
 	"github.com/skycoin-karl/teller/types"
 	"github.com/skycoin/skycoin/src/cipher"
@@ -17,8 +20,11 @@ var (
 )
 
 type Model struct {
+	sync.Mutex
+
 	path    string
 	errs    chan error
+	results *list.List
 	Scanner types.Service
 	Sender  types.Service
 	Monitor types.Service
@@ -26,6 +32,7 @@ type Model struct {
 
 func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
 	m := &Model{
+		results: list.New().Init(),
 		path:    path,
 		errs:    make(chan error),
 		Scanner: scnr,
@@ -52,58 +59,109 @@ func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
 		// create a slice of requests contained in file
 		requests, err := m.load(file.Name())
 		if err != nil {
+			if err == io.EOF {
+				continue
+			}
 			return nil, err
 		}
 
 		// inject each request into the proper service
 		for _, request := range requests {
-			go func(request *types.Request) {
-				if err := m.Handle(request); err != nil {
-					m.errs <- err
-				}
-			}(request)
+			err := m.Add(request)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return m, nil
 }
 
-func (m *Model) logger() {
+func (m *Model) Start() {
+	go func() {
+		for {
+			// TODO: tick
+			<-time.After(time.Second * 1)
+			m.process()
+		}
+	}()
+}
+
+func (m *Model) process() {
+	m.Lock()
+	defer m.Unlock()
+
+	// get first item
+	e := m.results.Front()
+	var r chan *types.Result
+
 	for {
-		err := <-m.errs
-		panic(err)
+		// nothing left in queue
+		if e == nil {
+			return
+		}
+		r = e.Value.(chan *types.Result)
+
+		select {
+		case result := <-r:
+			if result.Err != nil {
+				m.errs <- result.Err
+			} else {
+				err := m.save(result.Request)
+				if err != nil {
+					m.errs <- err
+				}
+
+				next := m.Handle(result.Request)
+				if next != nil {
+					m.results.PushFront(next)
+				}
+			}
+			m.results.Remove(e)
+			continue
+		default:
+			continue
+		}
+
+		e = e.Next()
 	}
 }
 
-func (m *Model) Handle(r *types.Request) error {
-	var err error
-
-	if err = m.save(r); err != nil {
-		return err
+func (m *Model) logger() {
+	for {
+		err := <-m.errs
+		println(err)
 	}
+}
 
-	switch r.Metadata.Status {
-	case types.DEPOSIT:
-		err = m.Scanner.Handle(r)
-	case types.SEND:
-		err = m.Sender.Handle(r)
-	case types.CONFIRM:
-		err = m.Monitor.Handle(r)
-	case types.EXPIRED:
-		return nil
-	case types.DONE:
-		return nil
-	default:
-		return ErrUnknownStatus
-	}
+func (m *Model) Add(r *types.Request) error {
+	m.Lock()
+	defer m.Unlock()
 
-	r.Metadata.Update()
-
+	err := m.save(r)
 	if err != nil {
 		return err
 	}
 
-	return m.Handle(r)
+	m.results.PushFront(m.Handle(r))
+	return nil
+}
+
+func (m *Model) Handle(r *types.Request) chan *types.Result {
+	switch r.Metadata.Status {
+	case types.DEPOSIT:
+		return m.Scanner.Handle(r)
+	case types.SEND:
+		return m.Sender.Handle(r)
+	case types.CONFIRM:
+		return m.Monitor.Handle(r)
+	case types.EXPIRED:
+		fallthrough
+	case types.DONE:
+		fallthrough
+	default:
+		return nil
+	}
 }
 
 var ErrDropMissing = errors.New("drop doesn't exist")

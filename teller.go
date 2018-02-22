@@ -37,21 +37,25 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	SCANNER.Start()
 
 	SENDER, err = sender.NewSender(SKYCOIN, DROPPER)
 	if err != nil {
 		panic(err)
 	}
+	SENDER.Start()
 
 	MONITOR, err = monitor.NewMonitor(SKYCOIN)
 	if err != nil {
 		panic(err)
 	}
+	MONITOR.Start()
 
 	MODEL, err = model.NewModel("db/", SCANNER, SENDER, MONITOR)
 	if err != nil {
 		panic(err)
 	}
+	MODEL.Start()
 
 	http.HandleFunc("/api/bind", apiBind)
 	http.HandleFunc("/api/status", apiStatus)

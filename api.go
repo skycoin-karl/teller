@@ -68,13 +68,12 @@ func apiBind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		// TODO: handle error better
-		err = MODEL.Handle(request)
-		if err != nil {
-			panic(err)
-		}
-	}()
+	// add for processing
+	err = MODEL.Add(request)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 type apiStatusRequest struct {

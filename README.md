@@ -86,7 +86,7 @@ A `request` can be created from two sources:
 * [frontend](#frontend) http request
 * on startup (reading unfinished requests from disk)
 
-Right now, each `request` creates its own goroutine (might change for better scaling in later phase) where the following steps take place:
+Each `request` goes through the following steps:
 
 1. `request.Status = waiting_deposit` - waiting for the user to deposit
 	* **scanner** watches `request.Drop` until deposit is detected

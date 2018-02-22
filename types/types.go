@@ -33,8 +33,19 @@ type (
 		Metadata *Metadata
 	}
 
+	Work struct {
+		Request *Request
+		Result  chan *Result
+	}
+
+	Result struct {
+		Request *Request
+		Err     error
+	}
+
 	Service interface {
-		Handle(*Request) error
+		Handle(*Request) chan *Result
+		Start()
 	}
 
 	Connection interface {
@@ -46,6 +57,10 @@ type (
 
 	Connections map[Currency]Connection
 )
+
+func (w *Work) Return(err error) {
+	w.Result <- &Result{w.Request, err}
+}
 
 func (m *Metadata) Update() { m.UpdatedAt = time.Now().Unix() }
 
