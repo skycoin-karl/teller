@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -17,16 +18,17 @@ import (
 var (
 	ErrUnknownStatus   = errors.New("unknown status type")
 	ErrInvalidFilename = errors.New("invalid filename in db dir")
+	ErrNilService      = errors.New("nil service passed to model")
 )
 
 type Model struct {
 	sync.Mutex
 
 	path    string
-	errs    chan error
 	stop    chan struct{}
 	results *list.List
 	config  *types.Config
+	Logger  *log.Logger
 	Scanner types.Service
 	Sender  types.Service
 	Monitor types.Service
@@ -36,15 +38,17 @@ func NewModel(c *types.Config, scn, sndr, mntr types.Service) (*Model, error) {
 	m := &Model{
 		results: list.New().Init(),
 		path:    c.Model.Path,
-		errs:    make(chan error),
 		stop:    make(chan struct{}),
 		config:  c,
+		Logger:  log.New(os.Stdout, "TELLER", 0),
 		Scanner: scn,
 		Sender:  sndr,
 		Monitor: mntr,
 	}
 
-	go m.logger()
+	if scn == nil || sndr == nil || mntr == nil {
+		return nil, ErrNilService
+	}
 
 	// make sure db dir exists
 	_, err := os.Stat(m.path)
@@ -120,12 +124,12 @@ func (m *Model) process() {
 		select {
 		case result := <-r:
 			if result.Err != nil {
-				m.errs <- result.Err
+				m.Logger.Panicln(result.Err)
 			} else {
 				result.Request.Metadata.Update()
 				err := m.save(result.Request)
 				if err != nil {
-					m.errs <- err
+					m.Logger.Panicln(result.Err)
 				}
 				next := m.Handle(result.Request)
 				if next != nil {
@@ -136,13 +140,6 @@ func (m *Model) process() {
 		default:
 			continue
 		}
-	}
-}
-
-func (m *Model) logger() {
-	for {
-		err := <-m.errs
-		println(err.Error())
 	}
 }
 

@@ -74,12 +74,13 @@ func NewBTCConnection(config *types.Config) (*BTCConnection, error) {
 		}
 	}
 
-	a, err := client.GetBalance(config.Dropper.BTC.Account)
+	rc, err := client.ListReceivedByAddress()
 	if err != nil {
 		return nil, err
 	}
 
-	println(a)
+	scs := spew.ConfigState{Indent: "\t"}
+	scs.Dump(rc)
 
 	return &BTCConnection{
 		client:  client,
