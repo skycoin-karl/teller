@@ -128,11 +128,12 @@ func (m *Model) Add(r *types.Request) error {
 	m.Lock()
 	defer m.Unlock()
 
-	err := m.save(r)
-	if err != nil {
+	// save to disk
+	if err := m.save(r); err != nil {
 		return err
 	}
 
+	// route to next component
 	if res := m.Handle(r); res != nil {
 		m.results.PushFront(res)
 	}

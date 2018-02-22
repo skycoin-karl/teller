@@ -60,15 +60,12 @@ func (s *Scanner) process() {
 			continue
 		}
 
-		// nothing has happened
-		if balance == 0.0 {
-			continue
+		// user made a deposit
+		if balance != 0.0 {
+			w.Request.Metadata.Status = types.SEND
+			w.Return(nil)
+			s.work.Remove(e)
 		}
-
-		// balance detected, so next step is sender
-		w.Request.Metadata.Status = types.SEND
-		w.Return(nil)
-		s.work.Remove(e)
 	}
 }
 
