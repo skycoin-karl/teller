@@ -2,7 +2,6 @@ package scanner
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 	"time"
 
@@ -30,39 +29,9 @@ func (s *Scanner) Start() {
 			// TODO: tick
 			<-time.After(time.Second * 1)
 
-			//s.process()
-			s.test_process()
+			s.process()
 		}
 	}()
-}
-
-func (s *Scanner) test_process() {
-	s.Lock()
-	defer s.Unlock()
-
-	e := s.work.Front()
-
-	defer println("-------------")
-
-	for i := 0; i < s.work.Len(); i++ {
-		if e == nil {
-			return
-		}
-
-		w := e.Value.(*types.Work)
-
-		fmt.Println(w.Request.Drop)
-
-		if w.Request.Drop == types.Drop("1GXoqycXrtguntcAHPycuYw9R6xUqpTVDb") {
-			w.Request.Metadata.Status = types.SEND
-			w.Return(nil)
-			s.work.Remove(e)
-			e = e.Next()
-			continue
-		}
-
-		e = e.Next()
-	}
 }
 
 func (s *Scanner) process() {

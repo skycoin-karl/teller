@@ -66,6 +66,7 @@ func (s *Sender) process() {
 			w.Request.Metadata.Status = types.EXPIRED
 			w.Return(nil)
 			s.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 
@@ -76,6 +77,7 @@ func (s *Sender) process() {
 		); err != nil {
 			w.Return(err)
 			s.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 
@@ -83,6 +85,7 @@ func (s *Sender) process() {
 		if balance == 0.0 {
 			w.Return(ErrZeroBalance)
 			s.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 
@@ -102,6 +105,7 @@ func (s *Sender) process() {
 		if err != nil {
 			w.Return(err)
 			s.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 
@@ -110,6 +114,7 @@ func (s *Sender) process() {
 		if err != nil {
 			w.Return(err)
 			s.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 

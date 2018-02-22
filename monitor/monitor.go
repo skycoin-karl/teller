@@ -53,11 +53,13 @@ func (m *Monitor) process() {
 		if err != nil {
 			w.Return(err)
 			m.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 
 		// if not confirmed, move to next work
 		if !tx.Transaction.Status.Confirmed {
+			e = e.Next()
 			continue
 		}
 
