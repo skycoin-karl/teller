@@ -12,12 +12,19 @@ import (
 	"github.com/skycoin/skycoin/src/api/cli"
 )
 
+// TODO: need a way to guarantee that every send is completed when teller shuts
+// down. can't have Sender.process() be in the middle of a loop when it shuts
+// down, as the request.Status hasn't been updated and written to disk yet.
+//
+// possibly use channels or a waitgroup
+
 type Sender struct {
 	sync.Mutex
 
 	skycoin *skycoin.Connection
 	dropper *dropper.Dropper
 	work    *list.List
+	stop    chan struct{}
 }
 
 var ErrZeroBalance = errors.New("sender got drop with zero balance")
@@ -27,8 +34,11 @@ func NewSender(s *skycoin.Connection, d *dropper.Dropper) (*Sender, error) {
 		skycoin: s,
 		dropper: d,
 		work:    list.New().Init(),
+		stop:    make(chan struct{}),
 	}, nil
 }
+
+func (s *Sender) Stop() { s.stop <- struct{}{} }
 
 func (s *Sender) Start() {
 	go func() {
@@ -36,7 +46,12 @@ func (s *Sender) Start() {
 			// TODO: tick
 			<-time.After(time.Second * 5)
 
-			s.process()
+			select {
+			case <-s.stop:
+				return
+			default:
+				s.process()
+			}
 		}
 	}()
 }

@@ -12,16 +12,20 @@ import (
 type Monitor struct {
 	sync.Mutex
 
-	work    *list.List
 	skycoin *skycoin.Connection
+	work    *list.List
+	stop    chan struct{}
 }
 
 func NewMonitor(sky *skycoin.Connection) (*Monitor, error) {
 	return &Monitor{
 		skycoin: sky,
 		work:    list.New().Init(),
+		stop:    make(chan struct{}),
 	}, nil
 }
+
+func (m *Monitor) Stop() { m.stop <- struct{}{} }
 
 func (m *Monitor) Start() {
 	go func() {
@@ -29,7 +33,12 @@ func (m *Monitor) Start() {
 			// TODO: tick
 			<-time.After(time.Second * 5)
 
-			m.process()
+			select {
+			case <-m.stop:
+				return
+			default:
+				m.process()
+			}
 		}
 	}()
 }

@@ -22,22 +22,26 @@ var (
 type Model struct {
 	sync.Mutex
 
-	path    string
-	errs    chan error
-	results *list.List
-	Scanner types.Service
-	Sender  types.Service
-	Monitor types.Service
+	path     string
+	errs     chan error
+	stop     chan struct{}
+	stopping bool
+	results  *list.List
+	Scanner  types.Service
+	Sender   types.Service
+	Monitor  types.Service
 }
 
 func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
 	m := &Model{
-		results: list.New().Init(),
-		path:    path,
-		errs:    make(chan error),
-		Scanner: scnr,
-		Sender:  sndr,
-		Monitor: mntr,
+		results:  list.New().Init(),
+		path:     path,
+		errs:     make(chan error),
+		stop:     make(chan struct{}),
+		stopping: false,
+		Scanner:  scnr,
+		Sender:   sndr,
+		Monitor:  mntr,
 	}
 
 	go m.logger()
@@ -77,13 +81,30 @@ func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
 	return m, nil
 }
 
+func (m *Model) Stop() {
+	m.Lock()
+	defer m.Unlock()
+	m.stopping = true
+
+	m.Scanner.Stop()
+	m.Sender.Stop()
+	m.Monitor.Stop()
+
+	m.stop <- struct{}{}
+}
+
 func (m *Model) Start() {
 	go func() {
 		for {
 			// TODO: tick
 			<-time.After(time.Second * 1)
 
-			m.process()
+			select {
+			case <-m.stop:
+				return
+			default:
+				m.process()
+			}
 		}
 	}()
 }
@@ -93,8 +114,10 @@ func (m *Model) process() {
 	defer m.Unlock()
 
 	for e := m.results.Front(); e != nil; e = e.Next() {
+		// convert to result promise
 		r := e.Value.(chan *types.Result)
 
+		// non-blocking read on each result promise
 		select {
 		case result := <-r:
 			if result.Err != nil {
@@ -142,6 +165,14 @@ func (m *Model) Add(r *types.Request) error {
 }
 
 func (m *Model) Handle(r *types.Request) chan *types.Result {
+	m.Lock()
+	defer m.Unlock()
+
+	// don't take any more requests if stopping
+	if m.stopping {
+		return nil
+	}
+
 	switch r.Metadata.Status {
 	case types.DEPOSIT:
 		return m.Scanner.Handle(r)

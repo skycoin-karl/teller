@@ -14,14 +14,18 @@ type Scanner struct {
 
 	dropper *dropper.Dropper
 	work    *list.List
+	stop    chan struct{}
 }
 
 func NewScanner(drpr *dropper.Dropper) (*Scanner, error) {
 	return &Scanner{
 		dropper: drpr,
 		work:    list.New().Init(),
+		stop:    make(chan struct{}),
 	}, nil
 }
+
+func (s *Scanner) Stop() { s.stop <- struct{}{} }
 
 func (s *Scanner) Start() {
 	go func() {
@@ -29,7 +33,12 @@ func (s *Scanner) Start() {
 			// TODO: tick
 			<-time.After(time.Second * 1)
 
-			s.process()
+			select {
+			case <-s.stop:
+				return
+			default:
+				s.process()
+			}
 		}
 	}()
 }

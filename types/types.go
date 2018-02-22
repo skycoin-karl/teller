@@ -46,6 +46,7 @@ type (
 	Service interface {
 		Handle(*Request) chan *Result
 		Start()
+		Stop()
 	}
 
 	Connection interface {
