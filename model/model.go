@@ -82,6 +82,7 @@ func (m *Model) Start() {
 		for {
 			// TODO: tick
 			<-time.After(time.Second * 1)
+
 			m.process()
 		}
 	}()
@@ -91,15 +92,16 @@ func (m *Model) process() {
 	m.Lock()
 	defer m.Unlock()
 
-	// get first item
-	e := m.results.Front()
-	var r chan *types.Result
+	var (
+		e *list.Element = m.results.Front()
+		r chan *types.Result
+	)
 
-	for {
-		// nothing left in queue
+	for i := 0; i < m.results.Len(); i++ {
 		if e == nil {
 			return
 		}
+
 		r = e.Value.(chan *types.Result)
 
 		select {
@@ -107,20 +109,20 @@ func (m *Model) process() {
 			if result.Err != nil {
 				m.errs <- result.Err
 			} else {
+				result.Request.Metadata.Update()
 				err := m.save(result.Request)
 				if err != nil {
 					m.errs <- err
 				}
-
 				next := m.Handle(result.Request)
 				if next != nil {
 					m.results.PushFront(next)
 				}
 			}
 			m.results.Remove(e)
-			continue
+			break
 		default:
-			continue
+			break
 		}
 
 		e = e.Next()
@@ -130,7 +132,7 @@ func (m *Model) process() {
 func (m *Model) logger() {
 	for {
 		err := <-m.errs
-		println(err)
+		println(err.Error())
 	}
 }
 
@@ -143,7 +145,10 @@ func (m *Model) Add(r *types.Request) error {
 		return err
 	}
 
-	m.results.PushFront(m.Handle(r))
+	if res := m.Handle(r); res != nil {
+		m.results.PushFront(res)
+	}
+
 	return nil
 }
 

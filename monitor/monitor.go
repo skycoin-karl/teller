@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 	"time"
 
@@ -28,11 +27,7 @@ func (m *Monitor) Start() {
 	go func() {
 		for {
 			// TODO: tick
-			if m.work.Len() == 0 {
-				<-time.After(time.Second * 3)
-			} else {
-				<-time.After(time.Second)
-			}
+			<-time.After(time.Second * 5)
 
 			m.process()
 		}
@@ -46,13 +41,12 @@ func (m *Monitor) process() {
 	e := m.work.Front()
 	var w *types.Work
 
-	for {
+	for i := 0; i < m.work.Len(); i++ {
 		if e == nil {
 			return
 		}
-		w = e.Value.(*types.Work)
 
-		fmt.Println(w.Request)
+		w = e.Value.(*types.Work)
 
 		// get sky transaction
 		tx, err := m.skycoin.Client.GetTransactionByID(w.Request.Metadata.TxId)
@@ -80,15 +74,10 @@ func (m *Monitor) process() {
 }
 
 func (m *Monitor) Handle(request *types.Request) chan *types.Result {
-	result := make(chan *types.Result)
+	m.Lock()
+	defer m.Unlock()
 
-	defer func() {
-		w := &types.Work{request, result}
-
-		m.Lock()
-		m.work.PushFront(w)
-		m.Unlock()
-	}()
-
+	result := make(chan *types.Result, 1)
+	m.work.PushFront(&types.Work{request, result})
 	return result
 }

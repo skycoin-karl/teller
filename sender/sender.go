@@ -34,11 +34,7 @@ func (s *Sender) Start() {
 	go func() {
 		for {
 			// TODO: tick
-			if s.work.Len() == 0 {
-				<-time.After(time.Second * 3)
-			} else {
-				<-time.After(time.Second)
-			}
+			<-time.After(time.Second * 5)
 
 			s.process()
 		}
@@ -57,11 +53,12 @@ func (s *Sender) process() {
 		err     error
 	)
 
-	for {
+	for i := 0; i < s.work.Len(); i++ {
 		// nothing left in queue
 		if e == nil {
 			return
 		}
+
 		w = e.Value.(*types.Work)
 
 		// check if expired
@@ -138,15 +135,10 @@ func (s *Sender) fromChangeAddr() string {
 }
 
 func (s *Sender) Handle(request *types.Request) chan *types.Result {
-	result := make(chan *types.Result)
+	s.Lock()
+	defer s.Unlock()
 
-	defer func() {
-		w := &types.Work{request, result}
-
-		s.Lock()
-		s.work.PushFront(w)
-		s.Unlock()
-	}()
-
+	result := make(chan *types.Result, 1)
+	s.work.PushFront(&types.Work{request, result})
 	return result
 }

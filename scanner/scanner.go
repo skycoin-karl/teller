@@ -2,10 +2,9 @@ package scanner
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 	"time"
-
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/skycoin-karl/teller/dropper"
 	"github.com/skycoin-karl/teller/types"
@@ -29,24 +28,46 @@ func (s *Scanner) Start() {
 	go func() {
 		for {
 			// TODO: tick
-			if s.work.Len() == 0 {
-				<-time.After(time.Second * 3)
-			} else {
-				<-time.After(time.Second)
-			}
+			<-time.After(time.Second * 1)
 
-			println("scanner scan")
-			s.process()
+			//s.process()
+			s.test_process()
 		}
 	}()
+}
+
+func (s *Scanner) test_process() {
+	s.Lock()
+	defer s.Unlock()
+
+	e := s.work.Front()
+
+	defer println("-------------")
+
+	for i := 0; i < s.work.Len(); i++ {
+		if e == nil {
+			return
+		}
+
+		w := e.Value.(*types.Work)
+
+		fmt.Println(w.Request.Drop)
+
+		if w.Request.Drop == types.Drop("1GXoqycXrtguntcAHPycuYw9R6xUqpTVDb") {
+			w.Request.Metadata.Status = types.SEND
+			w.Return(nil)
+			s.work.Remove(e)
+			e = e.Next()
+			continue
+		}
+
+		e = e.Next()
+	}
 }
 
 func (s *Scanner) process() {
 	s.Lock()
 	defer s.Unlock()
-
-	scs := spew.ConfigState{Indent: "\t"}
-	scs.Dump(s.work)
 
 	// get first item
 	e := s.work.Front()
@@ -57,11 +78,12 @@ func (s *Scanner) process() {
 		err     error
 	)
 
-	for {
+	for i := 0; i < s.work.Len(); i++ {
 		// nothing left in queue
 		if e == nil {
 			return
 		}
+
 		w = e.Value.(*types.Work)
 
 		// check if expired
@@ -69,6 +91,7 @@ func (s *Scanner) process() {
 			w.Request.Metadata.Status = types.EXPIRED
 			w.Return(nil)
 			s.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 
@@ -79,6 +102,7 @@ func (s *Scanner) process() {
 		); err != nil {
 			w.Return(err)
 			s.work.Remove(e)
+			e = e.Next()
 			continue
 		}
 
@@ -90,25 +114,16 @@ func (s *Scanner) process() {
 		// balance detected, so next step is sender
 		w.Request.Metadata.Status = types.SEND
 		w.Return(nil)
-
-		// remove from queue
 		s.work.Remove(e)
-
-		// get next item in queue
 		e = e.Next()
 	}
 }
 
 func (s *Scanner) Handle(request *types.Request) chan *types.Result {
-	result := make(chan *types.Result)
+	s.Lock()
+	defer s.Unlock()
 
-	defer func() {
-		w := &types.Work{request, result}
-
-		s.Lock()
-		s.work.PushFront(w)
-		s.Unlock()
-	}()
-
+	result := make(chan *types.Result, 1)
+	s.work.PushFront(&types.Work{request, result})
 	return result
 }
