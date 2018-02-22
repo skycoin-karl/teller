@@ -26,18 +26,20 @@ type Model struct {
 	errs    chan error
 	stop    chan struct{}
 	results *list.List
+	config  *types.Config
 	Scanner types.Service
 	Sender  types.Service
 	Monitor types.Service
 }
 
-func NewModel(path string, scnr, sndr, mntr types.Service) (*Model, error) {
+func NewModel(c *types.Config, scn, sndr, mntr types.Service) (*Model, error) {
 	m := &Model{
 		results: list.New().Init(),
-		path:    path,
+		path:    c.Model.Path,
 		errs:    make(chan error),
 		stop:    make(chan struct{}),
-		Scanner: scnr,
+		config:  c,
+		Scanner: scn,
 		Sender:  sndr,
 		Monitor: mntr,
 	}
@@ -94,8 +96,7 @@ func (m *Model) Stop() {
 func (m *Model) Start() {
 	go func() {
 		for {
-			// TODO: tick
-			<-time.After(time.Second * 1)
+			<-time.After(time.Second * time.Duration(m.config.Model.Tick))
 
 			select {
 			case <-m.stop:
@@ -128,7 +129,7 @@ func (m *Model) process() {
 				}
 				next := m.Handle(result.Request)
 				if next != nil {
-					m.results.PushFront(next)
+					m.results.PushBack(next)
 				}
 			}
 			m.results.Remove(e)

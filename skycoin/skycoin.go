@@ -3,6 +3,7 @@ package skycoin
 import (
 	"fmt"
 
+	"github.com/skycoin-karl/teller/types"
 	"github.com/skycoin/skycoin/src/api/webrpc"
 	"github.com/skycoin/skycoin/src/wallet"
 )
@@ -12,20 +13,20 @@ type Connection struct {
 	Client *webrpc.Client
 }
 
-func NewConnection(addr, seed string) (*Connection, error) {
-	c := &webrpc.Client{Addr: addr}
+func NewConnection(config *types.Config) (*Connection, error) {
+	c := &webrpc.Client{Addr: config.Skycoin.Node}
 	if s, err := c.GetStatus(); err != nil {
 		return nil, err
 	} else if !s.Running {
-		return nil, fmt.Errorf("node isn't running at %s", addr)
+		return nil, fmt.Errorf("node isn't running at %s", config.Skycoin.Node)
 	}
 
 	w, err := wallet.NewWallet(
-		"teller",
+		config.Skycoin.Name,
 		wallet.Options{
 			Coin:  wallet.CoinTypeSkycoin,
-			Label: "teller",
-			Seed:  seed,
+			Label: config.Skycoin.Name,
+			Seed:  config.Skycoin.Seed,
 		},
 	)
 	if err != nil {

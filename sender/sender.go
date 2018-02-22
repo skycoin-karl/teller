@@ -12,15 +12,10 @@ import (
 	"github.com/skycoin/skycoin/src/api/cli"
 )
 
-// TODO: need a way to guarantee that every send is completed when teller shuts
-// down. can't have Sender.process() be in the middle of a loop when it shuts
-// down, as the request.Status hasn't been updated and written to disk yet.
-//
-// possibly use channels or a waitgroup
-
 type Sender struct {
 	sync.Mutex
 
+	config  *types.Config
 	skycoin *skycoin.Connection
 	dropper *dropper.Dropper
 	work    *list.List
@@ -29,8 +24,9 @@ type Sender struct {
 
 var ErrZeroBalance = errors.New("sender got drop with zero balance")
 
-func NewSender(s *skycoin.Connection, d *dropper.Dropper) (*Sender, error) {
+func NewSender(c *types.Config, s *skycoin.Connection, d *dropper.Dropper) (*Sender, error) {
 	return &Sender{
+		config:  c,
 		skycoin: s,
 		dropper: d,
 		work:    list.New().Init(),
@@ -43,8 +39,7 @@ func (s *Sender) Stop() { s.stop <- struct{}{} }
 func (s *Sender) Start() {
 	go func() {
 		for {
-			// TODO: tick
-			<-time.After(time.Second * 5)
+			<-time.After(time.Second * time.Duration(s.config.Sender.Tick))
 
 			select {
 			case <-s.stop:
@@ -62,14 +57,6 @@ func (s *Sender) process() {
 
 	for e := s.work.Front(); e != nil; e = e.Next() {
 		w := e.Value.(*types.Work)
-
-		// check if expired
-		if w.Request.Metadata.Expired() {
-			w.Request.Metadata.Status = types.EXPIRED
-			w.Return(nil)
-			s.work.Remove(e)
-			continue
-		}
 
 		// get balance of drop
 		balance, err := s.dropper.GetBalance(

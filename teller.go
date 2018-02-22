@@ -11,6 +11,7 @@ import (
 	"github.com/skycoin-karl/teller/scanner"
 	"github.com/skycoin-karl/teller/sender"
 	"github.com/skycoin-karl/teller/skycoin"
+	"github.com/skycoin-karl/teller/types"
 )
 
 var (
@@ -27,37 +28,40 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 
-	var err error
-
-	DROPPER, err = dropper.NewDropper()
+	CONFIG, err := types.NewConfig("config.toml")
 	if err != nil {
 		panic(err)
 	}
 
-	SKYCOIN, err = skycoin.NewConnection("localhost:6430", "seed")
+	DROPPER, err = dropper.NewDropper(CONFIG)
 	if err != nil {
 		panic(err)
 	}
 
-	SCANNER, err = scanner.NewScanner(DROPPER)
+	SKYCOIN, err = skycoin.NewConnection(CONFIG)
+	if err != nil {
+		panic(err)
+	}
+
+	SCANNER, err = scanner.NewScanner(CONFIG, DROPPER)
 	if err != nil {
 		panic(err)
 	}
 	SCANNER.Start()
 
-	SENDER, err = sender.NewSender(SKYCOIN, DROPPER)
+	SENDER, err = sender.NewSender(CONFIG, SKYCOIN, DROPPER)
 	if err != nil {
 		panic(err)
 	}
 	SENDER.Start()
 
-	MONITOR, err = monitor.NewMonitor(SKYCOIN)
+	MONITOR, err = monitor.NewMonitor(CONFIG, SKYCOIN)
 	if err != nil {
 		panic(err)
 	}
 	MONITOR.Start()
 
-	MODEL, err = model.NewModel("db/", SCANNER, SENDER, MONITOR)
+	MODEL, err = model.NewModel(CONFIG, SCANNER, SENDER, MONITOR)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +77,7 @@ func main() {
 	http.HandleFunc("/api/status", apiStatus)
 
 	println("listening on :8080")
-	if err = http.ListenAndServe(":8080", nil); err != nil {
+	if err = http.ListenAndServe(CONFIG.Api.Listen, nil); err != nil {
 		panic(err)
 	}
 }

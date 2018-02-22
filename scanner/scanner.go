@@ -12,14 +12,16 @@ import (
 type Scanner struct {
 	sync.Mutex
 
+	config  *types.Config
 	dropper *dropper.Dropper
 	work    *list.List
 	stop    chan struct{}
 }
 
-func NewScanner(drpr *dropper.Dropper) (*Scanner, error) {
+func NewScanner(conf *types.Config, drpr *dropper.Dropper) (*Scanner, error) {
 	return &Scanner{
 		dropper: drpr,
+		config:  conf,
 		work:    list.New().Init(),
 		stop:    make(chan struct{}),
 	}, nil
@@ -30,8 +32,7 @@ func (s *Scanner) Stop() { s.stop <- struct{}{} }
 func (s *Scanner) Start() {
 	go func() {
 		for {
-			// TODO: tick
-			<-time.After(time.Second * 1)
+			<-time.After(time.Second * time.Duration(s.config.Scanner.Tick))
 
 			select {
 			case <-s.stop:
@@ -51,12 +52,14 @@ func (s *Scanner) process() {
 		w := e.Value.(*types.Work)
 
 		// check if expired
-		if w.Request.Metadata.Expired() {
+		if w.Request.Metadata.Expired(s.config.Scanner.Expiration) {
 			w.Request.Metadata.Status = types.EXPIRED
 			w.Return(nil)
 			s.work.Remove(e)
 			continue
 		}
+
+		println("scanning " + string(w.Request.Drop))
 
 		// get balance of drop
 		balance, err := s.dropper.GetBalance(

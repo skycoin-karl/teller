@@ -12,14 +12,16 @@ import (
 type Monitor struct {
 	sync.Mutex
 
+	config  *types.Config
 	skycoin *skycoin.Connection
 	work    *list.List
 	stop    chan struct{}
 	stopped bool
 }
 
-func NewMonitor(sky *skycoin.Connection) (*Monitor, error) {
+func NewMonitor(c *types.Config, sky *skycoin.Connection) (*Monitor, error) {
 	return &Monitor{
+		config:  c,
 		skycoin: sky,
 		work:    list.New().Init(),
 		stop:    make(chan struct{}),
@@ -31,8 +33,7 @@ func (m *Monitor) Stop() { m.stop <- struct{}{} }
 func (m *Monitor) Start() {
 	go func() {
 		for {
-			// TODO: tick
-			<-time.After(time.Second * 1)
+			<-time.After(time.Second * time.Duration(m.config.Monitor.Tick))
 
 			select {
 			case <-m.stop:

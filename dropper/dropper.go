@@ -10,8 +10,8 @@ type Dropper struct {
 	Connections types.Connections
 }
 
-func NewDropper() (*Dropper, error) {
-	btc, err := NewBTCConnection("127.0.0.1:8332")
+func NewDropper(config *types.Config) (*Dropper, error) {
+	btc, err := NewBTCConnection(config)
 
 	return &Dropper{
 		Connections: types.Connections{types.BTC: btc},

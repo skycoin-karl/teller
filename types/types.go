@@ -65,6 +65,7 @@ func (w *Work) Return(err error) {
 
 func (m *Metadata) Update() { m.UpdatedAt = time.Now().Unix() }
 
-func (m *Metadata) Expired() bool {
-	return time.Since(time.Unix(m.UpdatedAt, 0)) > (time.Hour * 2)
+func (m *Metadata) Expired(i int) bool {
+	return time.Since(time.Unix(m.UpdatedAt, 0)) >
+		(time.Hour * time.Duration(i))
 }
