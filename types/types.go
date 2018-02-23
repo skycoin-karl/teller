@@ -27,10 +27,10 @@ type (
 	}
 
 	Request struct {
-		Address  Address
-		Currency Currency
-		Drop     Drop
-		Metadata *Metadata
+		Address  Address   `json:"address"`
+		Currency Currency  `json:"currency"`
+		Drop     Drop      `json:"drop"`
+		Metadata *Metadata `json:"metadata"`
 	}
 
 	Work struct {

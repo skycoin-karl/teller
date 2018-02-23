@@ -43,9 +43,11 @@ func apiBind(w http.ResponseWriter, r *http.Request) {
 	drop, err := DROPPER.Connections[currency].Generate()
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
+		ERRS.Printf("api: %v\n", err)
 		return
 	}
 
+	// create new request
 	request := &types.Request{
 		Address:  types.Address(address.String()),
 		Currency: currency,
@@ -59,19 +61,19 @@ func apiBind(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send json response
-	err = json.NewEncoder(w).Encode(&apiBindResponse{
+	if err = json.NewEncoder(w).Encode(&apiBindResponse{
 		DropAddress:  string(request.Drop),
 		DropCurrency: string(request.Currency),
-	})
-	if err != nil {
+	}); err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
+		ERRS.Printf("api: %v\n", err)
 		return
 	}
 
 	// add for processing
-	err = MODEL.Add(request)
-	if err != nil {
+	if err = MODEL.Add(request); err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
+		ERRS.Printf("api: %v\n", err)
 		return
 	}
 }
@@ -104,6 +106,7 @@ func apiStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get metadata from disk
 	meta, err := MODEL.GetMetadata(
 		types.Address(address.String()),
 		types.Drop(req.DropAddress),
@@ -111,9 +114,11 @@ func apiStatus(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
+		ERRS.Printf("api: %v\n", err)
 		return
 	}
 
+	// send response
 	json.NewEncoder(w).Encode(&apiStatusResponse{
 		Status:    string(meta.Status),
 		UpdatedAt: meta.UpdatedAt,

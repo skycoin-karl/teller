@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,6 +22,8 @@ var (
 	SENDER  *sender.Sender
 	MONITOR *monitor.Monitor
 	MODEL   *model.Model
+
+	ERRS *log.Logger
 )
 
 func main() {
@@ -32,6 +35,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	ERRS = log.New(os.Stdout, types.LOG_ERRS, types.LOG_FLAGS)
 
 	DROPPER, err = dropper.NewDropper(CONFIG)
 	if err != nil {
@@ -61,7 +66,7 @@ func main() {
 	}
 	MONITOR.Start()
 
-	MODEL, err = model.NewModel(CONFIG, SCANNER, SENDER, MONITOR)
+	MODEL, err = model.NewModel(CONFIG, SCANNER, SENDER, MONITOR, ERRS)
 	if err != nil {
 		panic(err)
 	}

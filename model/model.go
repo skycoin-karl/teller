@@ -30,18 +30,20 @@ type Model struct {
 	config  *types.Config
 	logger  *log.Logger
 	errs    *log.Logger
+	events  *os.File
 	Scanner types.Service
 	Sender  types.Service
 	Monitor types.Service
 }
 
-func NewModel(c *types.Config, scn, sndr, mntr types.Service) (*Model, error) {
+func NewModel(c *types.Config, scn, sndr, mntr types.Service, errs *log.Logger) (*Model, error) {
 	m := &Model{
 		results: list.New().Init(),
 		path:    c.Model.Path,
 		stop:    make(chan struct{}),
 		config:  c,
 		logger:  log.New(os.Stdout, types.LOG_MODEL, types.LOG_FLAGS),
+		errs:    errs,
 		Scanner: scn,
 		Sender:  sndr,
 		Monitor: mntr,
@@ -58,8 +60,17 @@ func NewModel(c *types.Config, scn, sndr, mntr types.Service) (*Model, error) {
 		return nil, err
 	}
 
+	// open events log file
+	if m.events, err = os.OpenFile(
+		m.path+"events/log.json",
+		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
+		0644,
+	); err != nil {
+		return nil, err
+	}
+
 	// get list of files in db dir
-	files, err := ioutil.ReadDir(m.path)
+	files, err := ioutil.ReadDir(m.path + "requests/")
 	if err != nil {
 		return nil, err
 	}
@@ -123,17 +134,30 @@ func (m *Model) process() {
 		select {
 		case result := <-r:
 			if result.Err != nil {
-				m.errs.Println(result.Err)
+				// TODO: re-route request, try again?
+				m.errs.Printf("model: %v\n", result.Err)
 			} else {
 				result.Request.Metadata.Update()
+
+				// save new state to disk
 				if err := m.save(result.Request); err != nil {
-					m.errs.Println(result.Err)
-					// TODO: route request, try again?
+					m.errs.Printf("model: %v\n", result.Err)
 				}
+
+				// send to next service if request isn't finished
 				if next := m.Handle(result.Request); next != nil {
+					// add to queue
 					m.results.PushBack(next)
 				}
 			}
+
+			// append to events log
+			err := NewEvent(result.Request, result.Err).Append(m.events)
+			if err != nil {
+				m.errs.Printf("model: %v\n", err)
+			}
+
+			// this elem has been handled, so remove
 			m.results.Remove(e)
 		default:
 			continue
@@ -211,7 +235,7 @@ func (m *Model) load(n string) ([]*types.Request, error) {
 	}
 
 	// open file for reading
-	file, err := os.OpenFile(m.path+n, os.O_RDONLY, 0644)
+	file, err := os.OpenFile(m.path+"requests/"+n, os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +272,7 @@ func (m *Model) save(r *types.Request) error {
 
 	// open/create file for reading and writing
 	file, err := os.OpenFile(
-		m.path+string(r.Address)+".json",
+		m.path+"requests/"+string(r.Address)+".json",
 		os.O_CREATE|os.O_RDWR,
 		0644,
 	)
