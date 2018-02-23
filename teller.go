@@ -69,6 +69,7 @@ func main() {
 
 	go func() {
 		<-stop
+		println("stopping")
 		MODEL.Stop()
 		os.Exit(0)
 	}()

@@ -2,6 +2,8 @@ package scanner
 
 import (
 	"container/list"
+	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -14,6 +16,8 @@ type Scanner struct {
 
 	config  *types.Config
 	dropper *dropper.Dropper
+	logger  *log.Logger
+	errs    *log.Logger
 	work    *list.List
 	stop    chan struct{}
 }
@@ -21,18 +25,26 @@ type Scanner struct {
 func NewScanner(conf *types.Config, drpr *dropper.Dropper) (*Scanner, error) {
 	return &Scanner{
 		dropper: drpr,
+		logger:  log.New(os.Stdout, types.LOG_SCANNER, types.LOG_FLAGS),
+		errs:    log.New(os.Stdout, types.LOG_ERRS, types.LOG_FLAGS),
 		config:  conf,
 		work:    list.New().Init(),
 		stop:    make(chan struct{}),
 	}, nil
 }
 
-func (s *Scanner) Stop() { s.stop <- struct{}{} }
+func (s *Scanner) Stop() {
+	s.stop <- struct{}{}
+	s.logger.Println("stopped")
+}
 
 func (s *Scanner) Start() {
+	s.logger.Println("started")
 	go func() {
 		for {
 			<-time.After(time.Second * time.Duration(s.config.Scanner.Tick))
+
+			s.logger.Printf("[%d]\n", s.work.Len())
 
 			select {
 			case <-s.stop:
@@ -58,8 +70,6 @@ func (s *Scanner) process() {
 			s.work.Remove(e)
 			continue
 		}
-
-		println("scanning " + string(w.Request.Drop))
 
 		// get balance of drop
 		balance, err := s.dropper.GetBalance(

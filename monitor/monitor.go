@@ -2,6 +2,8 @@ package monitor
 
 import (
 	"container/list"
+	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -14,6 +16,7 @@ type Monitor struct {
 
 	config  *types.Config
 	skycoin *skycoin.Connection
+	logger  *log.Logger
 	work    *list.List
 	stop    chan struct{}
 	stopped bool
@@ -23,17 +26,24 @@ func NewMonitor(c *types.Config, sky *skycoin.Connection) (*Monitor, error) {
 	return &Monitor{
 		config:  c,
 		skycoin: sky,
+		logger:  log.New(os.Stdout, types.LOG_MONITOR, types.LOG_FLAGS),
 		work:    list.New().Init(),
 		stop:    make(chan struct{}),
 	}, nil
 }
 
-func (m *Monitor) Stop() { m.stop <- struct{}{} }
+func (m *Monitor) Stop() {
+	m.stop <- struct{}{}
+	m.logger.Println("stopped")
+}
 
 func (m *Monitor) Start() {
+	m.logger.Println("started")
 	go func() {
 		for {
 			<-time.After(time.Second * time.Duration(m.config.Monitor.Tick))
+
+			m.logger.Printf("[%d]\n", m.work.Len())
 
 			select {
 			case <-m.stop:

@@ -28,7 +28,8 @@ type Model struct {
 	stop    chan struct{}
 	results *list.List
 	config  *types.Config
-	Logger  *log.Logger
+	logger  *log.Logger
+	errs    *log.Logger
 	Scanner types.Service
 	Sender  types.Service
 	Monitor types.Service
@@ -40,12 +41,13 @@ func NewModel(c *types.Config, scn, sndr, mntr types.Service) (*Model, error) {
 		path:    c.Model.Path,
 		stop:    make(chan struct{}),
 		config:  c,
-		Logger:  log.New(os.Stdout, "TELLER", 0),
+		logger:  log.New(os.Stdout, types.LOG_MODEL, types.LOG_FLAGS),
 		Scanner: scn,
 		Sender:  sndr,
 		Monitor: mntr,
 	}
 
+	// make sure all services are there
 	if scn == nil || sndr == nil || mntr == nil {
 		return nil, ErrNilService
 	}
@@ -86,18 +88,15 @@ func NewModel(c *types.Config, scn, sndr, mntr types.Service) (*Model, error) {
 }
 
 func (m *Model) Stop() {
-	println("stopping scanner")
 	m.Scanner.Stop()
-	println("stopping sender")
 	m.Sender.Stop()
-	println("stopping monitor")
 	m.Monitor.Stop()
-
-	println("stopping model")
 	m.stop <- struct{}{}
+	m.logger.Println("stopped")
 }
 
 func (m *Model) Start() {
+	m.logger.Println("started")
 	go func() {
 		for {
 			<-time.After(time.Second * time.Duration(m.config.Model.Tick))
@@ -124,15 +123,14 @@ func (m *Model) process() {
 		select {
 		case result := <-r:
 			if result.Err != nil {
-				m.Logger.Panicln(result.Err)
+				m.errs.Println(result.Err)
 			} else {
 				result.Request.Metadata.Update()
-				err := m.save(result.Request)
-				if err != nil {
-					m.Logger.Panicln(result.Err)
+				if err := m.save(result.Request); err != nil {
+					m.errs.Println(result.Err)
+					// TODO: route request, try again?
 				}
-				next := m.Handle(result.Request)
-				if next != nil {
+				if next := m.Handle(result.Request); next != nil {
 					m.results.PushBack(next)
 				}
 			}
@@ -259,9 +257,10 @@ func (m *Model) save(r *types.Request) error {
 	}
 
 	// decode file
-	err = json.NewDecoder(file).Decode(&data)
-	if err != nil && err != io.EOF {
-		return err
+	if err = json.NewDecoder(file).Decode(&data); err != nil {
+		if err != io.EOF {
+			return err
+		}
 	}
 
 	// reset
@@ -284,13 +283,11 @@ func (m *Model) save(r *types.Request) error {
 	}
 
 	// write map to disk
-	err = enc.Encode(data)
-	if err != nil {
+	if err = enc.Encode(data); err != nil {
 		return err
 	}
 
-	err = file.Sync()
-	if err != nil {
+	if err = file.Sync(); err != nil {
 		return err
 	}
 

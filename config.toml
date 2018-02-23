@@ -11,16 +11,19 @@ account = "teller"
 testnet = true
 
 [scanner]
-tick = 1
+tick = 5
 # number of hours before expiring
 expiration = 24
 
 [sender]
-tick = 1
+tick = 5
 
 [model]
-tick = 1
+tick = 5
 path = "db/"
+
+[monitor]
+tick = 5
 
 [api]
 listen = ":8080"

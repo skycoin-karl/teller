@@ -3,6 +3,8 @@ package sender
 import (
 	"container/list"
 	"errors"
+	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -18,8 +20,10 @@ type Sender struct {
 	config  *types.Config
 	skycoin *skycoin.Connection
 	dropper *dropper.Dropper
-	work    *list.List
-	stop    chan struct{}
+	logger  *log.Logger
+
+	work *list.List
+	stop chan struct{}
 }
 
 var ErrZeroBalance = errors.New("sender got drop with zero balance")
@@ -29,17 +33,24 @@ func NewSender(c *types.Config, s *skycoin.Connection, d *dropper.Dropper) (*Sen
 		config:  c,
 		skycoin: s,
 		dropper: d,
+		logger:  log.New(os.Stdout, types.LOG_SENDER, types.LOG_FLAGS),
 		work:    list.New().Init(),
 		stop:    make(chan struct{}),
 	}, nil
 }
 
-func (s *Sender) Stop() { s.stop <- struct{}{} }
+func (s *Sender) Stop() {
+	s.stop <- struct{}{}
+	s.logger.Println("stopped")
+}
 
 func (s *Sender) Start() {
+	s.logger.Println("started")
 	go func() {
 		for {
 			<-time.After(time.Second * time.Duration(s.config.Sender.Tick))
+
+			s.logger.Printf("[%d]\n", s.work.Len())
 
 			select {
 			case <-s.stop:

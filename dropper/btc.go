@@ -4,8 +4,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcutil"
@@ -74,14 +72,6 @@ func NewBTCConnection(config *types.Config) (*BTCConnection, error) {
 		}
 	}
 
-	rc, err := client.ListReceivedByAddress()
-	if err != nil {
-		return nil, err
-	}
-
-	scs := spew.ConfigState{Indent: "\t"}
-	scs.Dump(rc)
-
 	return &BTCConnection{
 		client:  client,
 		account: config.Dropper.BTC.Account,
@@ -121,9 +111,6 @@ func (c *BTCConnection) Balance(drop types.Drop) (float64, error) {
 	if err != nil {
 		return 0, nil
 	}
-
-	scs := spew.ConfigState{Indent: "\t"}
-	scs.Dump(unspents)
 
 	var sum float64
 	for _, res := range unspents {
